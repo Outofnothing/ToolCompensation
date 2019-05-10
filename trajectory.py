@@ -1,3 +1,6 @@
+from math import hypot
+from get_intersection import *
+
 class Point:
     def __init__(self, x, y):
         self.x = float(x)
@@ -11,6 +14,9 @@ class Point:
         y = self.y + other.y
         return Point(x, y)
 
+    def __abs__(self):
+        return hypot(self.x, self.y)
+
     def __sub__(self, other):
         x = self.x - other.x
         y = self.y - other.y
@@ -22,12 +28,17 @@ class Line:
         self.goal = goal
 
 class Arc:
-    def __init__(self, radius, start, goal, origin, CLOCKWISE):
+    def __init__(self, start, goal, origin, CLOCKWISE):
         self.start = start
         self.goal = goal
-        self.radius = radius
+        self.radius = abs(goal-origin)
+        assert self.radius==abs(start - origin), "错误：圆弧参数错误，无法形成一个圆弧"
         self.origin = origin
         self.CLOCKWISE = CLOCKWISE
+
+    def __repr__(self):
+        return 'Arc starts at {0}, ends at {1}, origin at {2}, Clockwise:{3}'.format(self.start,
+                                self.goal, self.origin, self.CLOCKWISE)
 
 def GeneralEquation(first_x,first_y,second_x,second_y):
     # 一般式 Ax+By+C=0
@@ -51,17 +62,23 @@ def GetIntersectPointofLines(Line_1, Line_2):
     else:
         x = (C2*B1-C1*B2)/m
         y = (C1*A2-C2*A1)/m
-    return x, y
+    return Point(x, y)
 
+def GetIntersectPointofArcAndLine(arc, line):
+    pass
+    
 class Compensation:
     def __init__(self, radius, LEFT_CUT):
         self.radius = radius
         self.LEFT_CUT = LEFT_CUT
-        self.line_list = []
+        self.traj_list = []
         self.predifined_traj = []
-        self.augmented_traj = []
+        self.tool_traj = []
 
-    def line_cut(self, start, goal):
+    # 求出直线轨迹的刀具中心轨迹
+    def line_cut(self, line):
+        start = line.start
+        goal = line.goal
         diff = goal - start
         # 求得sin， cos
         sin_theta = diff.y/pow(pow(diff.x, 2) + pow(diff.y, 2), 0.5)
@@ -75,12 +92,13 @@ class Compensation:
         else:
             comp_start = start + Point(+sin_theta*self.radius, -cos_theta*self.radius)
             comp_goal = goal + Point(+sin_theta*self.radius, -cos_theta*self.radius)
-        self.line_list.append(Line(comp_start, comp_goal))
-        print(comp_start, comp_goal)
-        return comp_start, comp_goal
+        
+        self.traj_list.append(Line(comp_start, comp_goal))
+        
     
+    # 求出圆弧轨迹的刀具中心轨迹
     def arc_cut(self, arc):
-        assert(arc.radius < self.radius, "错误：输入的刀具直径大于加工圆弧的直径")
+        assert arc.radius > self.radius, "错误：输入的刀具直径大于加工圆弧的直径"
         diff_s = arc.start - arc.origin
         diff_g = arc.goal - arc.origin
         sin_theta_s = diff_s.y/pow(pow(diff_s.x, 2) + pow(diff_s.y, 2), 0.5)
@@ -97,20 +115,37 @@ class Compensation:
             comp_start = arc.start + Point(cos_theta_s*self.radius, sin_theta_s*self.radius)
             comp_goal = arc.goal + Point(cos_theta_g*self.radius, sin_theta_g*self.radius)
             comp_radius = arc.radius - self.radius
-        return Arc(comp_radius, comp_start, comp_goal, arc.origin, arc.CLOCKWISE)
-        
-    def join_lines(self):
-        self.augmented_traj.append(self.line_list[0].start)
-        for i  in range(len(self.line_list)-1):
-            intersection = GetIntersectPointofLines(self.line_list[i], self.line_list[i+1])
-            self.augmented_traj.append(intersection)
-        self.augmented_traj.append(self.line_list[-1].goal)
 
-comp = Compensation(10, True)
-a = Point(100, 10)
-b = Point(100, 100)
-c = Point(200, 100)
-comp.line_cut(a, b)
-comp.line_cut(b, c)
-comp.join_lines()
-print(comp.augmented_traj)
+        self.traj_list.append(Arc(comp_start, comp_goal, arc.origin, arc.CLOCKWISE))
+
+    # 将断续的轨迹连成完整的轨迹
+    def join_trajectory(self):
+        for traj in self.predifined_traj:
+            if type(traj) == Line:
+                self.line_cut(traj)
+            else:
+                self.arc_cut(traj)
+
+        for i in len(self.traj_list):
+            if type(self.traj_list[i]) is Line and type(self.traj_list[i+1]) is Line:
+                intersection = GetIntersectPointofLines(self.traj_list[i], self.traj_list[i+1])
+                self.traj_list[i].goal = intersection
+                self.traj_list[i+1].start = intersection
+                
+            if type(self.traj_list[i]) is Line and type(self.traj_list[i+1]) is Arc:
+                pass
+            
+            if type(self.traj_list[i]) is Arc and type(self.traj_list[i+1]) is Arc: 
+                pass
+            
+            if type(self.traj_list[i]) is Arc and type(self.traj_list[i+1]) is Line:
+                pass
+
+        
+comp = Compensation(5, True)
+line_1 = Line(Point(0, 0), Point(0, 100))
+line_2 = Line(Point(0, 100), Point(100, 100))
+arc_1 = Arc(Point(100, 100), Point(200, 0), Point(100, 0), True)
+line_3 = Line(Point(200, 0), Point(0, 0))
+comp.predifined_traj = [line_1, line_2, arc_1, line_3]
+print(comp.tool_traj)
