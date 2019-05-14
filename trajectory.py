@@ -212,11 +212,11 @@ class Compensation:
                 self.tool_traj[i].goal = intersection
                 self.tool_traj[i+1].start = intersection
 
-comp = Compensation(5, True)
-arc_1 = Arc(Point(-200, 0), Point(100, 100), Point(100, -400), True)
+# comp = Compensation(5, True)
+# arc_1 = Arc(Point(-200, 0), Point(100, 100), Point(100, -400), True)
 
-arc_2 = Arc(Point(100, 100), Point(200, 0), Point(100, 0), True)
-line_3 = Line(Point(200, 0), Point(-200, 0))
-comp.predifined_traj = [arc_1, arc_2,line_3]
-comp.join_trajectory()
-print(comp.tool_traj)
+# arc_2 = Arc(Point(100, 100), Point(200, 0), Point(100, 0), True)
+# line_3 = Line(Point(200, 0), Point(-200, 0))
+# comp.predifined_traj = [arc_1, arc_2,line_3]
+# comp.join_trajectory()
+# print(comp.tool_traj)
