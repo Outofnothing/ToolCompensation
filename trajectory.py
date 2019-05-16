@@ -31,6 +31,10 @@ class Point:
     def T(self):
         return Point(-self.y, self.x)
 
+    def get_tuple(self):
+        return (self.x, self.y)
+
+
 class Line:
     def __init__(self, start,  goal):
         self.start = start
@@ -38,6 +42,17 @@ class Line:
     
     def __repr__(self):
         return "Line start at {0}, ends at {1}".format(self.start, self.goal)
+
+    # 返回以逆时针为正的角度
+    def angle(self):
+        vec = self.goal - self.start
+        cos_theta = vec.x/abs(vec)
+        sin_theta = vec.y/abs(vec)
+        if sin_theta>=0:
+            theta = math.acos(cos_theta)
+        else:
+            theta = 2*math.pi - math.acos(cos_theta)
+        return theta
 
 class Arc:
     def __init__(self, start, goal, origin, CLOCKWISE):
@@ -51,6 +66,16 @@ class Arc:
     def __repr__(self):
         return 'Arc starts at {0}, ends at {1}, origin at {2}, Clockwise:{3}'.format(self.start,
                                 self.goal, self.origin, self.CLOCKWISE)
+
+    def angle(self):
+        vec1 = Line(self.start, self.origin)
+        vec2 = Line(self.goal, self.origin)
+        theta = vec1.angle() - vec2.angle()
+        if self.CLOCKWISE is True:
+                angle = angle*360/(2*math.pi)
+        else:
+            angle = 360 - angle*360/(2*math.pi)            
+        return theta
 
 def GeneralEquation(line):
     # 一般式 Ax+By+C=0
@@ -81,8 +106,8 @@ def GetIntersectPointofArcAndLine(arc, line):
     goal = line.goal
     diff = goal - start
     # 求得sin， cos
-    sin_theta = diff.y/pow(pow(diff.x, 2) + pow(diff.y, 2), 0.5)
-    cos_theta = diff.x/pow(pow(diff.x, 2) + pow(diff.y, 2), 0.5)
+    sin_theta = diff.y/abs(diff)
+    cos_theta = diff.x/abs(diff)
     # 计算出圆心与直线垂足
     foot_x = (B*B*arc.origin.x - A*B*arc.origin.y - A*C)/(A**2 + B**2)
     foot_y = (A*A*arc.origin.y - A*B*arc.origin.x - B*C)/(A**2 + B**2)
@@ -100,8 +125,8 @@ def GetIntersectPointofArcs(arc1, arc2):
     middle = (arc2.origin - arc1.origin)*cos_theta*arc1.radius/d + arc1.origin
     diff = arc2.origin - arc1.origin
     # 求得sin， cos
-    sin_alpha = diff.y/pow(pow(diff.x, 2) + pow(diff.y, 2), 0.5)
-    cos_alpha = diff.x/pow(pow(diff.x, 2) + pow(diff.y, 2), 0.5)
+    sin_alpha = diff.y/abs(diff)
+    cos_alpha = diff.x/abs(diff)
     theta = math.acos(cos_theta)
     sin_theta = math.sin(theta)
     h = sin_theta*arc1.radius
@@ -125,8 +150,8 @@ class Compensation:
         goal = line.goal
         diff = goal - start
         # 求得sin， cos
-        sin_theta = diff.y/pow(pow(diff.x, 2) + pow(diff.y, 2), 0.5)
-        cos_theta = diff.x/pow(pow(diff.x, 2) + pow(diff.y, 2), 0.5)
+        sin_theta = diff.y/abs(diff)
+        cos_theta = diff.x/abs(diff)
         
         if self.LEFT_CUT:
             # 平移直线
@@ -171,12 +196,9 @@ class Compensation:
                 self.arc_cut(traj)
 
         self.tool_traj= self.traj_list.copy()
-        for i in range(len(self.traj_list)):
+        for i in range(len(self.traj_list)-1):
             current_traj = self.traj_list[i]
-            if i == len(self.traj_list)-1:
-                next_traj = self.traj_list[0]
-            else:
-                next_traj = self.traj_list[i+1]
+            next_traj = self.traj_list[i+1]
             
             if type(current_traj) is Line and type(next_traj) is Line:
                 intersection = GetIntersectPointofLines(current_traj, next_traj)
@@ -205,18 +227,18 @@ class Compensation:
                     intersection = inter1
                 else:
                     intersection = inter2
-            if i == len(self.traj_list)-1:
-                self.tool_traj[i].goal = intersection
-                self.tool_traj[0].start = intersection
-            else:
-                self.tool_traj[i].goal = intersection
-                self.tool_traj[i+1].start = intersection
+            
+            self.tool_traj[i].goal = intersection
+            self.tool_traj[i+1].start = intersection
 
 # comp = Compensation(5, True)
-# arc_1 = Arc(Point(-200, 0), Point(100, 100), Point(100, -400), True)
+# # arc_1 = Arc(Point(100, 0), Point(100, 100), Point(100, -400), True)
 
-# arc_2 = Arc(Point(100, 100), Point(200, 0), Point(100, 0), True)
-# line_3 = Line(Point(200, 0), Point(-200, 0))
-# comp.predifined_traj = [arc_1, arc_2,line_3]
+# # arc_2 = Arc(Point(100, 100), Point(200, 0), Point(100, 0), True)
+# line_2 = Line(Point(0, 0), Point(100, 0))
+
+# line_3 = Line(Point(100, 0), Point(100, 100))
+# comp.predifined_traj = [line_2,line_3]
 # comp.join_trajectory()
 # print(comp.tool_traj)
+
