@@ -14,11 +14,11 @@ Ui_MainWindow, QtBaseClass = uic.loadUiType(qtCreatorFile)
 width, height = 1000, 1000
 class Entity(pg.sprite.Sprite):
 
-    def __init__(self, pos, traj):
+    def __init__(self, pos, traj,tool_radius):
         super().__init__()
-        ATOM_IMG = pg.Surface((30, 30), pg.SRCALPHA)
-        pg.gfxdraw.aacircle(ATOM_IMG, 15, 15, 14, (255, 0, 0))
-        pg.gfxdraw.filled_circle(ATOM_IMG, 15, 15, 14, (255,0, 0))
+        ATOM_IMG = pg.Surface((2*tool_radius, 2*tool_radius), pg.SRCALPHA)
+        pg.gfxdraw.aacircle(ATOM_IMG, tool_radius, tool_radius, tool_radius, (255, 0, 0))
+        pg.gfxdraw.filled_circle(ATOM_IMG, tool_radius, tool_radius, tool_radius, (255,0, 0))
 
         self.image = ATOM_IMG
         self.rect = self.image.get_rect(center=pos)
@@ -44,7 +44,7 @@ class Entity(pg.sprite.Sprite):
             self.pos += self.vel
             # 使用左上角坐标系绘图
             self.rect.center = change_coor(self.pos)
-            print(distance)
+            # print(distance)
             if distance <= 2:  # We're closer than 1 pixel.
                 # 结束当前的轨迹描画，进入下一个轨迹
                 self.done = True
@@ -54,7 +54,7 @@ class Entity(pg.sprite.Sprite):
             else:
                 angle = self.arc_speed
             self.radius_vector = self.radius_vector.rotate(angle)
-            print(self.radius_vector)
+            # print(self.radius_vector)
             self.pos = self.radius_vector + self.origin
             self.rect.center = change_coor(self.pos)
             distance = (self.target - self.pos).length()
@@ -117,20 +117,20 @@ class MyApp(QtWidgets.QMainWindow, Ui_MainWindow):
         print("{0} added.\n".format(arc))
     
     def draw(self):
-        comp = Compensation(5, True)
+        self.tool_radius = int(self.tool_radius_input.toPlainText())
+        comp = Compensation(self.tool_radius, True)
         comp.predifined_traj = self.predifined_traj
         comp.join_trajectory()
         screen = pg.display.set_mode((width, height))
         LINE_IMG = pg.Surface((width, height),pg.SRCALPHA)
-        for traj in comp.tool_traj:
-            pg.gfxdraw.line(LINE_IMG, int(traj.start.x), int(traj.start.y), int(traj.goal.x), int(traj.goal.y),(255, 0, 0))
+        
         print(comp.tool_traj)
         # 画出每条轨迹
         to_draw = []
         for traj in comp.tool_traj:
             to_draw.append(traj)
             clock = pg.time.Clock()
-            entity = Entity(traj.start.get_tuple(), traj)
+            entity = Entity(traj.start.get_tuple(), traj, self.tool_radius)
             all_sprites = pg.sprite.Group(entity)
             
             while not entity.done:
@@ -145,12 +145,35 @@ class MyApp(QtWidgets.QMainWindow, Ui_MainWindow):
                 for route in comp.tool_traj:
                     start = change_coor(Vector2(route.start.get_tuple()))
                     end = change_coor(Vector2(route.goal.get_tuple()))
-                    pg.draw.line(screen, (0, 0, 255), start, end)
+                    if type(route) is Line:
+                        pg.draw.line(screen, (0, 0, 255), start, end)
+                    else:
+                        origin = change_coor(Vector2(route.origin.get_tuple()))
+                        top_left = change_coor(Vector2(route.origin.x - route.radius, route.origin.y + route.radius))
+                        
+                        start_angle = Line(route.origin,route.start).angle()
+                        end_angle = Line(route.origin, route.goal).angle()
+                        # 如果是顺时针的则要反过来画圆弧
+                        if route.CLOCKWISE is True:
+                            end_angle, start_angle = start_angle, end_angle
+                        pg.draw.arc(screen, (0, 0, 255), (top_left, (2*route.radius, 2*route.radius)), start_angle, end_angle)
                     
                 for route in comp.predifined_traj:
                     start = change_coor(Vector2(route.start.get_tuple()))
                     end = change_coor(Vector2(route.goal.get_tuple()))
-                    pg.draw.line(screen, (255, 255, 255), start, end)
+                    if type(route) is Line:
+                        pg.draw.line(screen, (255, 255, 255), start, end)
+                    else:
+                        origin = change_coor(Vector2(route.origin.get_tuple()))
+                        top_left = change_coor(Vector2(route.origin.x - route.radius, route.origin.y + route.radius))
+                        
+                        start_angle = Line(route.origin,route.start).angle()
+                        end_angle = Line(route.origin, route.goal).angle()
+                        # 如果是顺时针的则要反过来画圆弧
+                        if route.CLOCKWISE is True:
+                            end_angle, start_angle = start_angle, end_angle
+                        pg.draw.arc(screen, (255, 255, 255), (top_left, (2*route.radius, 2*route.radius)), start_angle, end_angle)
+
                 all_sprites.draw(screen)
                 for point in [traj.start.get_tuple(), traj.goal.get_tuple()]:
                     point = change_coor(Vector2(point))

@@ -344,6 +344,37 @@
      <string>开始仿真</string>
     </property>
    </widget>
+   <widget class="QTextEdit" name="tool_radius_input">
+    <property name="geometry">
+     <rect>
+      <x>150</x>
+      <y>550</y>
+      <width>104</width>
+      <height>31</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QLabel" name="yg_3">
+    <property name="geometry">
+     <rect>
+      <x>30</x>
+      <y>550</y>
+      <width>101</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>16</pointsize>
+      <weight>50</weight>
+      <italic>false</italic>
+      <bold>false</bold>
+     </font>
+    </property>
+    <property name="text">
+     <string>刀具半径</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
