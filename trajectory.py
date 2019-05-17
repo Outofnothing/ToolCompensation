@@ -1,6 +1,7 @@
 from math import hypot
 import math
 
+# it's point and vector
 class Point:
     def __init__(self, x, y):
         self.x = float(x)
@@ -33,7 +34,6 @@ class Point:
 
     def get_tuple(self):
         return (self.x, self.y)
-
 
 class Line:
     def __init__(self, start,  goal):
@@ -77,6 +77,7 @@ class Arc:
             angle = 360 - angle*360/(2*math.pi)            
         return theta
 
+# using general equation to represent line
 def GeneralEquation(line):
     # 一般式 Ax+By+C=0
     # from http://www.cnblogs.com/DHUtoBUAA/
@@ -87,16 +88,19 @@ def GeneralEquation(line):
     C=second_x*first_y-first_x*second_y
     return A,B,C
 
+# return the intersection point of two lines
 def GetIntersectPointofLines(Line_1, Line_2):
     # from http://www.cnblogs.com/DHUtoBUAA/
     A1, B1, C1 = GeneralEquation(Line_1)
     A2, B2, C2 = GeneralEquation(Line_2)
     m = A1*B2-A2*B1
+    # if there is no intersection point, raise assertion error
     assert m!=0, "错误：两直线平行，无交点"
     x = (C2*B1-C1*B2)/m
     y = (C1*A2-C2*A1)/m
     return Point(x, y)
 
+# return the intersection point of arc and line
 def GetIntersectPointofArcAndLine(arc, line):
     A, B, C = GeneralEquation(line)
     distance = abs(A*arc.origin.x + B*arc.origin.y+C)/pow(A**2+B**2, 0.5)
@@ -135,7 +139,8 @@ def GetIntersectPointofArcs(arc1, arc2):
     inter1 = middle + (arc2.origin - arc1.origin).T()*(h/d)
     inter2 = middle - (arc2.origin - arc1.origin).T()*(h/d)
     return inter1, inter2
-    
+
+# to do compensation
 class Compensation:
     def __init__(self, radius, LEFT_CUT):
         self.radius = radius
@@ -231,14 +236,4 @@ class Compensation:
             self.tool_traj[i].goal = intersection
             self.tool_traj[i+1].start = intersection
 
-# comp = Compensation(5, True)
-# # arc_1 = Arc(Point(100, 0), Point(100, 100), Point(100, -400), True)
-
-# # arc_2 = Arc(Point(100, 100), Point(200, 0), Point(100, 0), True)
-# line_2 = Line(Point(0, 0), Point(100, 0))
-
-# line_3 = Line(Point(100, 0), Point(100, 100))
-# comp.predifined_traj = [line_2,line_3]
-# comp.join_trajectory()
-# print(comp.tool_traj)
 
