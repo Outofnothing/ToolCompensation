@@ -26,6 +26,12 @@ class Point:
     def __mul__(self, scalar):
         return Point(self.x*scalar, self.y*scalar) 
 
+    def __eq__(self, other):
+        if self.x == other.x and self.y == other.y:
+            return True
+        else:
+            return False
+
     def __truediv__(self, scalar):
         return Point(self.x/scalar, self.y/scalar)
 
@@ -140,6 +146,37 @@ def GetIntersectPointofArcs(arc1, arc2):
     inter2 = middle - (arc2.origin - arc1.origin).T()*(h/d)
     return inter1, inter2
 
+# 返回两个相邻轨迹的交点
+def get_intersection(current_traj, next_traj):
+        if type(current_traj) is Line and type(next_traj) is Line:
+                intersection = GetIntersectPointofLines(current_traj, next_traj)
+                
+                
+        elif type(current_traj) is Line and type(next_traj) is Arc:
+            inter1, inter2 = GetIntersectPointofArcAndLine(next_traj, current_traj)
+            # 靠近直线终点的是我们需要的那个交点
+            if abs(inter1-current_traj.goal) <= abs(inter2-current_traj.goal):
+                intersection = inter1
+            else:
+                intersection = inter2
+        
+        elif type(current_traj) is Arc and type(next_traj) is Arc: 
+            inter1, inter2 = GetIntersectPointofArcs(current_traj, next_traj)
+            # 靠近圆弧终点的是我们需要的那个交点
+            if abs(inter1-current_traj.goal) <= abs(inter2-current_traj.goal):
+                intersection = inter1
+            else:
+                intersection = inter2
+
+        else: # type(current_traj) is Arc and type(next_traj) is Line:
+            inter1, inter2 = GetIntersectPointofArcAndLine(current_traj, next_traj)
+            # 靠近圆弧终点的是我们需要的那个交点
+            if abs(inter1-current_traj.goal) <= abs(inter2-current_traj.goal):
+                intersection = inter1
+            else:
+                intersection = inter2
+        return intersection
+
 # to do compensation
 class Compensation:
     def __init__(self, radius, LEFT_CUT):
@@ -184,14 +221,16 @@ class Compensation:
         if (not arc.CLOCKWISE and not self.LEFT_CUT) or (arc.CLOCKWISE and self.LEFT_CUT):
             comp_start = arc.start + Point(cos_theta_s*self.radius, sin_theta_s*self.radius)
             comp_goal = arc.goal + Point(cos_theta_g*self.radius, sin_theta_g*self.radius)
-            comp_radius = arc.radius+self.radius
+            
         else:
-            comp_start = arc.start + Point(cos_theta_s*self.radius, sin_theta_s*self.radius)
-            comp_goal = arc.goal + Point(cos_theta_g*self.radius, sin_theta_g*self.radius)
-            comp_radius = arc.radius - self.radius
+            comp_start = arc.start - Point(cos_theta_s*self.radius, sin_theta_s*self.radius)
+            comp_goal = arc.goal - Point(cos_theta_g*self.radius, sin_theta_g*self.radius)
+            
 
         self.traj_list.append(Arc(comp_start, comp_goal, arc.origin, arc.CLOCKWISE))
 
+    
+            
     # 将断续的轨迹连成完整的轨迹
     def join_trajectory(self):
         for traj in self.predifined_traj:
@@ -204,36 +243,15 @@ class Compensation:
         for i in range(len(self.traj_list)-1):
             current_traj = self.traj_list[i]
             next_traj = self.traj_list[i+1]
-            
-            if type(current_traj) is Line and type(next_traj) is Line:
-                intersection = GetIntersectPointofLines(current_traj, next_traj)
-                
-                
-            elif type(current_traj) is Line and type(next_traj) is Arc:
-                inter1, inter2 = GetIntersectPointofArcAndLine(next_traj, current_traj)
-                # 靠近直线终点的是我们需要的那个交点
-                if abs(inter1-current_traj.goal) <= abs(inter2-current_traj.goal):
-                    intersection = inter1
-                else:
-                    intersection = inter2
-            
-            elif type(current_traj) is Arc and type(next_traj) is Arc: 
-                inter1, inter2 = GetIntersectPointofArcs(current_traj, next_traj)
-                # 靠近圆弧终点的是我们需要的那个交点
-                if abs(inter1-current_traj.goal) <= abs(inter2-current_traj.goal):
-                    intersection = inter1
-                else:
-                    intersection = inter2
-
-            else: # type(current_traj) is Arc and type(next_traj) is Line:
-                inter1, inter2 = GetIntersectPointofArcAndLine(current_traj, next_traj)
-                # 靠近圆弧终点的是我们需要的那个交点
-                if abs(inter1-current_traj.goal) <= abs(inter2-current_traj.goal):
-                    intersection = inter1
-                else:
-                    intersection = inter2
-            
-            self.tool_traj[i].goal = intersection
-            self.tool_traj[i+1].start = intersection
-
-
+            self.tool_traj[i].goal = get_intersection(current_traj, next_traj)
+            self.tool_traj[i+1].start = get_intersection(current_traj, next_traj)
+        
+        # 如果预定义是封闭轨迹，那么刀具轨迹也形成封闭轨迹
+        print(self.traj_list[0].start)
+        print(self.traj_list[-1].goal)
+        if self.predifined_traj[0].start == self.predifined_traj[-1].goal:
+            print(4561561561545)
+            next_traj = self.traj_list[0]
+            current_traj = self.traj_list[-1]
+            self.tool_traj[-1].goal = get_intersection(current_traj, next_traj)
+            self.tool_traj[0].start = get_intersection(current_traj, next_traj)

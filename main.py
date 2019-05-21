@@ -14,7 +14,7 @@ Ui_MainWindow, QtBaseClass = uic.loadUiType(qtCreatorFile)
 width, height = 1000, 1000
 class Entity(pg.sprite.Sprite):
 
-    def __init__(self, pos, traj,tool_radius):
+    def __init__(self, pos, traj,tool_radius, ani_speed):
         super().__init__()
         ATOM_IMG = pg.Surface((2*tool_radius, 2*tool_radius), pg.SRCALPHA)
         pg.gfxdraw.aacircle(ATOM_IMG, tool_radius, tool_radius, tool_radius, (255, 0, 0))
@@ -23,8 +23,8 @@ class Entity(pg.sprite.Sprite):
         self.image = ATOM_IMG
         self.rect = self.image.get_rect(center=pos)
         self.vel = Vector2(0, 0)
-        self.line_speed = 3
-        self.arc_speed = 1
+        self.line_speed = ani_speed
+        self.arc_speed = ani_speed/2
         self.traj = traj
         self.target = Vector2(self.traj.goal.get_tuple())      
         self.pos = Vector2(self.traj.start.get_tuple())
@@ -45,7 +45,7 @@ class Entity(pg.sprite.Sprite):
             # 使用左上角坐标系绘图
             self.rect.center = change_coor(self.pos)
             # print(distance)
-            if distance <= 2:  # We're closer than 1 pixel.
+            if distance <= 3:  # We're closer than 1 pixel.
                 # 结束当前的轨迹描画，进入下一个轨迹
                 self.done = True
         else:
@@ -75,6 +75,7 @@ class MyApp(QtWidgets.QMainWindow, Ui_MainWindow):
         self.add_arc.clicked.connect(self.add_arc_traj)
         self.add_arc_2.clicked.connect(self.add_arc_traj_IN)
         self.start.clicked.connect(self.draw)
+        self.output_string = ""
 
     def add_line_traj(self):
         xg = float(self.xg_input.toPlainText())
@@ -86,6 +87,8 @@ class MyApp(QtWidgets.QMainWindow, Ui_MainWindow):
         else:
             line = Line(self.predifined_traj[-1].goal, Point(xg, yg))
         self.predifined_traj.append(line)
+        self.output_string += "{0} added.\n".format(line)
+        self.output.setText(self.output_string)
         print("{0} added.\n".format(line))
 
     def add_arc_traj(self):
@@ -100,6 +103,8 @@ class MyApp(QtWidgets.QMainWindow, Ui_MainWindow):
         else:
             arc = Arc(self.predifined_traj[-1].goal, Point(xg, yg), Point(origin_x, origin_y), True)
         self.predifined_traj.append(arc)
+        self.output_string += "{0} added.\n".format(arc)
+        self.output.setText(self.output_string)
         print("{0} added.\n".format(arc))
     
     def add_arc_traj_IN(self):
@@ -114,23 +119,33 @@ class MyApp(QtWidgets.QMainWindow, Ui_MainWindow):
         else:
             arc = Arc(self.predifined_traj[-1].goal, Point(xg, yg), Point(origin_x, origin_y), False)
         self.predifined_traj.append(arc)
+        self.output_string += "{0} added.\n".format(arc)
+        self.output.setText(self.output_string)
         print("{0} added.\n".format(arc))
     
     def draw(self):
         self.tool_radius = int(self.tool_radius_input.toPlainText())
-        comp = Compensation(self.tool_radius, True)
+        ani_speed = self.speed.value()/25 + 1 # from 1 to 5
+        if self.tool_radius > 0:
+            comp = Compensation(self.tool_radius, True)
+        else:
+            self.tool_radius = abs(self.tool_radius)
+            comp = Compensation(self.tool_radius, False)
         comp.predifined_traj = self.predifined_traj
+        self.output_string += "Predifined trajectory: {0}\n\n".format(self.predifined_traj)
+        self.output.setText(self.output_string)
         comp.join_trajectory()
         screen = pg.display.set_mode((width, height))
         LINE_IMG = pg.Surface((width, height),pg.SRCALPHA)
-        
+        self.output_string += "Trajectory of the tool: {0}\n\n".format(comp.tool_traj)
+        self.output.setText(self.output_string)
         print(comp.tool_traj)
         # 画出每条轨迹
         to_draw = []
         for traj in comp.tool_traj:
             to_draw.append(traj)
             clock = pg.time.Clock()
-            entity = Entity(traj.start.get_tuple(), traj, self.tool_radius)
+            entity = Entity(traj.start.get_tuple(), traj, self.tool_radius, ani_speed)
             all_sprites = pg.sprite.Group(entity)
             
             while not entity.done:
