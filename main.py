@@ -8,14 +8,18 @@ import matplotlib.pyplot as plt  # "matplotlib"2D绘图库 "pyplot"提供类似M
 from matplotlib import animation # "animation"画动态图
 from PyQt5 import uic, QtWidgets # "PyQt5"绘制界面
 
-qtCreatorFile = "gui.ui"         # Enter file here.
+# 导入界面设计文件爱呢
+qtCreatorFile = "gui.ui"         
 DONE = True
 Ui_MainWindow, QtBaseClass = uic.loadUiType(qtCreatorFile)
+# 定义窗口的高度，宽度
 width, height = 1000, 1000
+# 用于动画的制作
 class Entity(pg.sprite.Sprite):
 
     def __init__(self, pos, traj,tool_radius, ani_speed):
         super().__init__()
+        # 用一个圆来模拟铣刀
         ATOM_IMG = pg.Surface((2*tool_radius, 2*tool_radius), pg.SRCALPHA)
         pg.gfxdraw.aacircle(ATOM_IMG, tool_radius, tool_radius, tool_radius, (255, 0, 0))
         pg.gfxdraw.filled_circle(ATOM_IMG, tool_radius, tool_radius, tool_radius, (255,0, 0))
@@ -32,6 +36,7 @@ class Entity(pg.sprite.Sprite):
         if type(traj) is Arc:
             self.origin = Vector2(traj.origin.get_tuple())
             self.radius_vector = self.pos- self.origin
+    # 每一帧更新一次铣刀的位置
     def update(self):
         if type(self.traj) is Line:
             # A vector pointing from self to the target.
@@ -44,7 +49,7 @@ class Entity(pg.sprite.Sprite):
             self.pos += self.vel
             # 使用左上角坐标系绘图
             self.rect.center = change_coor(self.pos)
-            # print(distance)
+            # 
             if distance <= 3:  # We're closer than 1 pixel.
                 # 结束当前的轨迹描画，进入下一个轨迹
                 self.done = True
@@ -65,19 +70,24 @@ class Entity(pg.sprite.Sprite):
 def change_coor(coord):
     return coord.x+width/2, height/2 - coord.y
 
+# 这是界面与后台交互的部分
 class MyApp(QtWidgets.QMainWindow, Ui_MainWindow):
     def __init__(self):
         QtWidgets.QMainWindow.__init__(self)
         Ui_MainWindow.__init__(self)
         self.setupUi(self)
         self.predifined_traj = []
+        # 当界面中某个按钮被触发，就会运行对应的程序
         self.add_line.clicked.connect(self.add_line_traj)
         self.add_arc.clicked.connect(self.add_arc_traj)
         self.add_arc_2.clicked.connect(self.add_arc_traj_IN)
         self.start.clicked.connect(self.draw)
+        # 初始化输出字符串
         self.output_string = ""
 
+    # 添加一条直线轨迹到predefine_traj中
     def add_line_traj(self):
+        # 将输入的值转换为float
         xg = float(self.xg_input.toPlainText())
         yg = float(self.yg_input.toPlainText())
         if len(self.predifined_traj) == 0:
@@ -87,10 +97,12 @@ class MyApp(QtWidgets.QMainWindow, Ui_MainWindow):
         else:
             line = Line(self.predifined_traj[-1].goal, Point(xg, yg))
         self.predifined_traj.append(line)
+        # 将信息输出到界面
         self.output_string += "{0} added.\n".format(line)
         self.output.setText(self.output_string)
         print("{0} added.\n".format(line))
-
+        
+    # 添加一条圆弧轨迹
     def add_arc_traj(self):
         xg = float(self.xg_input.toPlainText())
         yg = float(self.yg_input.toPlainText())
@@ -106,7 +118,8 @@ class MyApp(QtWidgets.QMainWindow, Ui_MainWindow):
         self.output_string += "{0} added.\n".format(arc)
         self.output.setText(self.output_string)
         print("{0} added.\n".format(arc))
-    
+
+    # 添加一条逆圆弧轨迹
     def add_arc_traj_IN(self):
         xg = float(self.xg_input.toPlainText())
         yg = float(self.yg_input.toPlainText())
@@ -122,10 +135,13 @@ class MyApp(QtWidgets.QMainWindow, Ui_MainWindow):
         self.output_string += "{0} added.\n".format(arc)
         self.output.setText(self.output_string)
         print("{0} added.\n".format(arc))
-    
+
+    # 在画图界面上画出轨迹、铣刀
     def draw(self):
         self.tool_radius = int(self.tool_radius_input.toPlainText())
+        # 这是动画运行的速度
         ani_speed = self.speed.value()/25 + 1 # from 1 to 5
+        # 初始化刀具补偿对象
         if self.tool_radius > 0:
             comp = Compensation(self.tool_radius, True)
         else:
@@ -134,6 +150,7 @@ class MyApp(QtWidgets.QMainWindow, Ui_MainWindow):
         comp.predifined_traj = self.predifined_traj
         self.output_string += "Predifined trajectory: {0}\n\n".format(self.predifined_traj)
         self.output.setText(self.output_string)
+        # 将离散的轨迹连成一个完整的轨迹
         comp.join_trajectory()
         screen = pg.display.set_mode((width, height))
         LINE_IMG = pg.Surface((width, height),pg.SRCALPHA)
@@ -195,9 +212,10 @@ class MyApp(QtWidgets.QMainWindow, Ui_MainWindow):
                     pg.draw.rect(screen, (90, 200, 40), (point, (4, 4)))
 
                 pg.display.flip()
+                # 每隔30毫秒进行一次画面更新
                 clock.tick(30)
 
-
+# 主函数
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     window = MyApp()

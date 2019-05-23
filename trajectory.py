@@ -1,46 +1,52 @@
 from math import hypot
 import math
 
-# it's point and vector
+# 定义了一个类，表示点以及向量
 class Point:
     def __init__(self, x, y):
         self.x = float(x)
         self.y = float(y)
 
+    # 返回便于阅读的格式
     def __repr__(self):
         return 'Point(%r, %r)'%(self.x, self.y)
 
+    # 向量相加
     def __add__(self, other):
         x = self.x + other.x
         y = self.y + other.y
         return Point(x, y)
-
+    
+    # 返回向量的模
     def __abs__(self):
         return hypot(self.x, self.y)
-
+    # 定义了减法
     def __sub__(self, other):
         x = self.x - other.x
         y = self.y - other.y
-        return Point(x, y)
-
+        return Point(x, y) 
+    # 定义了标量乘法
     def __mul__(self, scalar):
         return Point(self.x*scalar, self.y*scalar) 
 
+    # 判断两个点是不是同一个
     def __eq__(self, other):
         if self.x == other.x and self.y == other.y:
             return True
         else:
             return False
-
+    # 定义了标量除法
     def __truediv__(self, scalar):
         return Point(self.x/scalar, self.y/scalar)
 
+    # 返回向量的正交向量
     def T(self):
         return Point(-self.y, self.x)
 
     def get_tuple(self):
         return (self.x, self.y)
 
+# 抽象一条直线
 class Line:
     def __init__(self, start,  goal):
         self.start = start
@@ -60,6 +66,7 @@ class Line:
             theta = 2*math.pi - math.acos(cos_theta)
         return theta
 
+# 抽象一个圆弧
 class Arc:
     def __init__(self, start, goal, origin, CLOCKWISE):
         self.start = start
